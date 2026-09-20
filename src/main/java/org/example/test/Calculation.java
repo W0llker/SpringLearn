@@ -1,4 +1,4 @@
-package org.example;
+package org.example.test;
 
 public class Calculation {
     public int sum(int a, int b) {

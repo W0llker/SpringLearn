@@ -1,4 +1,4 @@
-import org.example.Calculation;
+import org.example.test.Calculation;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
