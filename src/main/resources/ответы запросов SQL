@@ -1,0 +1,109 @@
+-- 1.Выведи все товары вместе с названием их категории (INNER JOIN).
+SELECT products.name, categories.name
+FROM products LEFT JOIN categories ON products.category_id = categories.id
+
+-- 2.Выведи все заказы: id заказа, имя клиента, статус, дата.
+SELECT orders.id, customers.full_name, orders.status, orders.created_at
+FROM orders JOIN customers ON orders.customer_id = customers.id
+
+-- 3.Выведи ВСЕ товары, даже те, у которых категория не указана, вместе с категорией (LEFT JOIN)
+SELECT products.id, products.name, products.price, categories.name
+FROM products LEFT JOIN categories ON products.category_id = categories.id
+
+-- 4.Найди товары, которые ещё ни разу не покупали (JOIN + условие IS NULL).
+SELECT products.name
+FROM products LEFT JOIN order_items as ord ON ord.product_id = products.id
+WHERE ord.product_id  IS NULL
+
+-- 5.Выведи клиентов, у которых нет ни одного заказа (LEFT JOIN + IS NULL).
+SELECT customers.full_name
+FROM customers LEFT JOIN orders ON customers.id = orders.customer_id
+WHERE orders.customer_id is null
+
+-- 6.Для каждой позиции заказа покажи: id заказа, имя клиента, название товара, количество, цену позиции (quantity × unit_price)
+SELECT order_items.id, customers.full_name,products.name, products.stock, (order_items.quantity * order_items.unit_price)
+FROM order_items JOIN orders ON order_items.order_id = orders.id
+JOIN customers ON orders.customer_id = customers.id
+JOIN products ON order_items.product_id = products.id
+
+-- 7.Выведи заказы, где есть товар из категории «Книги» (три таблицы: orders → order_items → products → categories).
+SELECT orders.*
+FROM orders JOIN order_items ON orders.id = order_items.order_id
+JOIN products ON order_items.product_id = products.id
+JOIN categories ON products.category_id = categories.id
+WHERE categories.name = 'Книги'
+
+-- 8.Найди клиентов из Минска, покупавших электронику. Убери дубликаты клиентов.
+SELECT DISTINCT customers.*
+FROM customers JOIN orders ON customers.id = orders.customer_id
+JOIN order_items ON orders.id = order_items.order_id
+JOIN products ON order_items.product_id = products.id
+JOIN categories ON products.category_id = categories.id
+WHERE customers.city = '
+
+
+-- 9.Посчитай количество заказов у каждого клиента (включая тех, у кого 0 заказов).
+SELECT orders.customer_id, COUNT(*)
+FROM orders
+GROUP BY orders.customer_id
+ORDER BY orders.customer_id
+
+-- 10.Выведи суммарную выручку по каждому статусу заказа.
+SELECT orders.status, SUM(order_items.quantity * order_items.unit_price) as price
+FROM orders JOIN order_items ON orders.id = order_items.order_id
+group by orders.status
+
+-- 11.Найди топ-3 самых продаваемых товара по количеству штук (по оплаченным заказам: status IN ('paid','shipped','delivered')).
+SELECT products.name, SUM(order_items.quantity) as total
+FROM order_items
+    JOIN products ON order_items.product_id = products.id
+    JOIN orders ON order_items.order_id = orders.id
+WHERE orders.status IN ('paid','shipped','delivered')
+GROUP BY products.name
+ORDER BY total desc
+LIMIT 3;
+
+-- 12.Для каждого товара покажи: сколько раз покупали, общее количество штук, суммарная выручка. Только товары, которые покупали.
+SELECT products.name, COUNT(order_items.id), SUM(order_items.quantity), SUM(order_items.quantity * order_items.unit_price)
+FROM products
+    JOIN order_items ON products.id = order_items.product_id
+GROUP BY products.name
+
+-- 13 То же самое, но включи и непроданные товары (LEFT JOIN), выручка NULL замени на 0 (COALESCE).
+SELECT products.name,
+       COUNT(order_items.id),
+       COALESCE(SUM(order_items.quantity), 0),
+       COALESCE(SUM(order_items.quantity * order_items.unit_price), 0)
+FROM products
+         LEFT JOIN order_items ON products.id = order_items.product_id
+GROUP BY products.name
+
+-- 14 Найди средний чек (средняя сумма заказа) по каждому городу.
+SELECT customers.city, ROUND(AVG(order_total), 2) AS avg_order
+FROM (
+         SELECT  o.customer_id, SUM(oi.quantity * oi.unit_price) AS order_total
+         FROM orders o
+                  JOIN order_items oi ON oi.order_id = o.id
+         GROUP BY o.customer_id
+     ) t
+         JOIN customers  ON customers.id = t.customer_id
+GROUP BY customers.city;
+
+-- 15 Выведи категории, суммарная выручка которых больше 2000.
+SELECT categories.name, SUM(order_items.quantity * order_items.unit_price)
+FROM categories
+         JOIN products ON categories.id = products.category_id
+         JOIN order_items ON products.id = order_items.product_id
+GROUP BY categories.name
+HAVING SUM(order_items.quantity * order_items.unit_price) > 2000
+
+-- 16 Для каждого клиента посчитай: всего заказов, сколько из них доставлено, суммарная выручка по доставленным.
+неплохой кейс
+SELECT customers.full_name,
+       COUNT(orders.id),
+       COUNT(orders.id) FILTER ( WHERE orders.status = 'delivered' ),
+       SUM(order_items.quantity * order_items.unit_price) filter ( where orders.status = 'delivered' )
+FROM customers
+         JOIN orders ON customers.id = orders.customer_id
+         JOIN order_items ON orders.id = order_items.order_id
+GROUP BY customers.full_name
