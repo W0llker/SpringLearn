@@ -107,3 +107,87 @@ FROM customers
          JOIN orders ON customers.id = orders.customer_id
          JOIN order_items ON orders.id = order_items.order_id
 GROUP BY customers.full_name
+
+-- 17 Найди самый дорогой товар (без ORDER BY + LIMIT — через подзапрос с MAX)
+SELECT *
+FROM products
+WHERE products.price = (SELECT MAX(products.price)
+                        FROM products)
+
+-- 18 Найди товары, дороже средней цены по своей категории (коррелированный подзапрос)
+SELECT *
+FROM products
+         JOIN categories ON products.category_id = categories.id
+WHERE price > (SELECT AVG(p.price)
+               FROM products p
+               WHERE products.category_id = p.category_id)
+
+-- 19 Выведи клиентов, чей суммарный объём покупок больше среднего суммарного объёма по всем клиентам
+SELECT customers.full_name, SUM(order_items.quantity * order_items.unit_price)
+      FROM customers
+      JOIN orders ON customers.id = orders.customer_id
+      JOIN order_items ON orders.id = order_items.order_id
+GROUP BY customers.id, customers.full_name
+HAVING SUM(order_items.quantity * order_items.unit_price) > (SELECT AVG(custtomers_total1)
+                                                             FROM (
+                                                                 SELECT SUM(order_items.quantity * order_items.unit_price) as custtomers_total1
+                                                                 FROM orders
+                                                                 JOIN order_items ON orders.id = order_items.order_id
+                                                                 GROUP BY orders.id
+                                                                  ))
+
+-- 21 Выведи последний заказ каждого клиента (подзапрос с MAX(created_at)).
+SELECT *
+FROM customers
+JOIN orders o ON customers.id = o.customer_id
+WHERE o.created_at = (SELECT MAX(or1.created_at)
+                           FROM orders or1
+                           WHERE o.customer_id = or1.customer_id)
+
+
+--тестил всякое
+
+
+CREATE TABLE Practice.school (
+    id serial PRIMARY KEY,
+    name varchar(30),
+    age int
+);
+
+INSERT INTO Practice.school(name,age)
+    VALUES ('Катя',24),
+           ('Вася',12);
+
+SELECT * FROM Practice.school;
+
+ALTER TABLE Practice.school
+ADD COLUMN salary int DEFAULT 0 NOT NULL ,
+ADD CONSTRAINT name_uniqie UNIQUE (name);
+
+SELECT s.name FROM Practice.school s
+WHERE s.age > 16;
+
+INSERT INTO Practice.school(name,age,salary)
+VALUES ('Пупа',22,25000),
+       ('Шлюпа',20,29000),
+       ('Олег',27,15000),
+       ('Джумба',23,18000),
+       ('Федор',25,14000),
+       ('Славик',18,19000);
+
+
+SELECT * FROM Practice.school
+LIMIT 3 OFFSET 2;
+
+SELECT * FROM Practice.school s
+WHERE s.salary BETWEEN 12000 AND 18000
+ORDER BY salary;
+
+SELECT * FROM Practice.school s
+WHERE s.name like '%о%';
+
+SELECT name || ' ' || age as name_age FROM Practice.school
+
+
+
+
